@@ -1,89 +1,97 @@
 #%% imports
-from son.haberlesme import CMD_MAVI, CMD_SARI
+from haberlesme import write_cmd
 from collections import deque
 import cv2
 import numpy as np
-import time
 
+COLOR_SARI = 0
+COLOR_MAVI = 1
 
-
-#%% Kamera Ayarlari
 buffer_size = 16
 pts = deque(maxlen = buffer_size)
-mavi_say=0
-sarı_say = 0
 cap = cv2.VideoCapture(0)
 cap.set(3,960)
 cap.set(4,480)
-#%% Kamera - Obje ayarlari   !!! dikkat !!! Bunlari ayarlamadan calistirirsaniz hatali sonuclar elde edil.
+
+
+# #%% Kamera Ayarlari
+# def setup_cam():
+#     global buffer_size = 16
+#     global pts = deque(maxlen = buffer_size)
+#     global cap = cv2.VideoCapture(0)
+#     cap.set(3,960)S
+#     cap.set(4,480)
+
 frame_width_cm = 19.5
 after_comma = 2
 frame_width_px = cap.get(4)
 frame_height_px = cap.get(3)
 px_in_cm = frame_width_cm / frame_width_px
-print("frame: wh",frame_width_px,frame_height_px)
-print("px in cm:",px_in_cm)
+
+mavi_say = 0
+sarı_say = 0
+coord_y_cm = 0
+
+
+
+# print("frame: wh",frame_width_px,frame_height_px)
+# print("px in cm:",px_in_cm)
 
 
 
 
 
 def renk_say(renk):
+    global stop
     global mavi_say
     global sarı_say
-    global x
-    global y
-    while True:
-        videoCapture()    
-        if renk == CMD_MAVI:
-            if x>10  :
-                if y<10 :
-                    mavi_say = mavi_say  + 1
-                    print(mavi_say)
-                    time.sleep(1)
-        elif renk == CMD_SARI:
-            if x>10  :                            
-                if y<10 :
-                    sarı_say = sarı_say  + 1
-                    print(sarı_say)
-                    return sarı_say
-                    time.sleep(1) 
+    global coord_y_cm
+    
+    videoCapture(renk)
+    
+    if coord_y_cm > 4  :
+        sarı_say = sarı_say + 1
+        print(sarı_say)
         
-        if renk == "q": 
-            break     
-
+        command = 't6.txt="'+str(sarı_say)+'"' 
+        write_cmd(command)
 
 
 
         #%%
-def renk_ayırma():
+def renk_ayirma(renk):
    print ("renk ayirma")
+   
+   
 
 
 
 
 #%%
-def renk_takip():
+def renk_takip(renk):
     global coord_x_cm
     global coord_y_cm
-    #Basla()
-    while True:
-        videoCapture() 
-        print("coord_px x:",coord_x_cm,"y:",coord_y_cm)
+    global ser
+    global stop
         
-
-
-
+    videoCapture(renk) 
+    print("x:",coord_x_cm,"y:",coord_y_cm)
+    command = 't6.txt="'+'x:'+str(coord_x_cm)+'y:'+str(coord_y_cm)+'"' 
+    write_cmd(command)
+    
+    
 
 
         
-def videoCapture():
+def videoCapture(renk):
+    global coord_x_cm
+    global coord_y_cm
     success, imgOriginal = cap.read()
     if success: 
         imgOriginal = imgOriginal[0:960,275:565] 
         blurred = cv2.GaussianBlur(imgOriginal, (11,11), 0)      
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, Renk_Lower(read),Renk_Upper(read)) 
+        mask = cv2.inRange(hsv, Renk_Lower(renk),Renk_Upper(renk)) 
         mask = cv2.erode(mask, None, iterations = 2)
         mask = cv2.dilate(mask, None, iterations = 2) 
         (contours,_) = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -93,7 +101,7 @@ def videoCapture():
             rect = cv2.minAreaRect(c)
             ((x,y), (width,height), rotation) = rect
             s = "x: {}, y: {}, width: {}, height: {}, rotation: {}".format(np.round(x),np.round(y),np.round(width),np.round(height),np.round(rotation))
-            print(s)  
+           
             (x,y,width,height,rotation)=(np.round(x),np.round(y),np.round(width),np.round(height),np.round(rotation))
             x = np.round(x)
             y = np.round(y)                
@@ -119,6 +127,7 @@ def videoCapture():
             if pts[i-1] is None or pts[i] is None: continue
             cv2.line(imgOriginal, pts[i-1], pts[i],(0,255,0),3) # 
         cv2.imshow("Orijinal Tespit",imgOriginal)
+        print(coord_y_cm)
 
 
 
@@ -126,22 +135,18 @@ def videoCapture():
 
 
 def Renk_Lower(a):
-    if a == "Mavi":
+    if a == COLOR_MAVI:
         blueLower = (85,  97,  0)
         return blueLower
-    elif a=="Sarı":
+    elif a== COLOR_SARI:
         blueLower = (20,  127,  0)
         return blueLower
-    else:
-        Okuyucu()
-        Renk_Lower(read)    
+      
 def Renk_Upper(b):       
-    if b == "Mavi":
+    if b == COLOR_MAVI:
         blueUpper = (178,  255,  255)
         return blueUpper
-    elif b=="Sarı":
+    elif b== COLOR_SARI:
         blueUpper = (52, 255, 255)
         return blueUpper
-    else:
-        Okuyucu()
-        Renk_Upper(read)
+    

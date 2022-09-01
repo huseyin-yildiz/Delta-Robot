@@ -3,24 +3,36 @@ from pickle import NONE
 import serial.tools.list_ports
 
 CMD_NONE = b''
-CMD_SAYMA =
-CMD_AYIRMA =
-CMD_TAKIP =
-CMD_SARI = 
-CMD_MAVI =
+CMD_SAYMA_S = b'\xa0'
+CMD_SAYMA_M = b'\xa1'
 
-ser = NONE
+CMD_TAKIP_S = b'\xb0'
+CMD_TAKIP_M = b'\xb1'
 
-def connect():
-    ser = serial.Serial(port='/dev/ttyUSB0',
-                    baudrate=9600,
+CMD_AYIKLA_S = b'\xc0'
+CMD_AYIKLA_M = b'\xc1'
+
+CMD_CLOSE = b'\xff\xff\xff'
+
+CMD_BACK = b'\xe0'
+
+
+def connect(_port,_baud_rate):
+    return serial.Serial(port=_port,
+                    baudrate=_baud_rate,
                     parity=serial.PARITY_NONE,
                     stopbits=serial.STOPBITS_ONE,
                     bytesize=serial.EIGHTBITS,
-                    timeout=1)
+                    timeout=0)
 
 
-def read_cmd():
+def read_cmd(ser):
     if(ser == NONE):
-        raise Exception("Raspberry ile baglanti yok. connect() yapmayı unutmayiniz")
+        raise Exception("Nextion ile baglanti yok. connect() yapmayı unutmayiniz")
     return ser.readline()
+
+ser = connect('/dev/ttyUSB0',9600)
+def write_cmd(text):
+    ser.write(text.encode())
+    ser.write(CMD_CLOSE)
+
