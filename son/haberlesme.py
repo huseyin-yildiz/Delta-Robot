@@ -18,21 +18,21 @@ CMD_BACK = b'\xe0'
 
 
 def connect(_port,_baud_rate):
-    return serial.Serial(port=_port,
+    ser = serial.Serial(port=_port,
                     baudrate=_baud_rate,
                     parity=serial.PARITY_NONE,
                     stopbits=serial.STOPBITS_ONE,
                     bytesize=serial.EIGHTBITS,
                     timeout=0)
-
+    return ser
 
 def read_cmd(ser):
     if(ser == NONE):
         raise Exception("Nextion ile baglanti yok. connect() yapmayı unutmayiniz")
     return ser.readline()
 
-ser = connect('/dev/ttyUSB0',9600)
-def write_cmd(text):
+
+def write_cmd(ser,text):
     ser.write(text.encode())
     ser.write(CMD_CLOSE)
 
