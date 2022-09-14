@@ -1,6 +1,7 @@
-
+#%% imports
+from typing import Deque
 from konum_takip import *
-
+from tracker import *
 
 
 buffer_size = 1000
@@ -9,25 +10,21 @@ cap = cv2.VideoCapture(0)
 cap.set(3,960)
 cap.set(4,544)
 
-#%%
-
-last_hulls = None
-last_centers = None
-
-
 
 
  
- #%%
+ #%% counting
 
-def draw_center_line(img, last_hulls, last_centers, center):   # eger yeni merkezlerden onceki box'lar icinde olan varsa merkezler birlestirilir. 
-    
-    for hull in hulls:
         
-        center = is_in_hulls(last_hulls,center)
-    
-    
-    
+tracker = EuclideanDistTracker()
+
+passed_ids = deque(maxlen=200)
+
+count_area_size = 10
+count_border_down = real_length / 5 - count_area_size / 2
+count_border_up   = count_border_down + count_area_size
+
+count = 0
 
 while(True):
     success, img = cap.read()
@@ -45,21 +42,31 @@ while(True):
         
         
         hulls = color_filter(gama_corrected_hsv, yellow_down, yellow_up, yellow_erode, yellow_dilate)
-        if( len(hulls) ):
-            center = draw_contour(img, hulls, (0,255,255) )
-            pts.append(center)
 
         # draw_center_line(img,last_hulls,last_centers, hulls)   # eger yeni merkezlerden onceki box'lar icinde olan varsa merkezler birlestirilir. 
 
+        detections = []
+        for hull in hulls:
+            # Calculate area and remove small elements
+            area = cv2.contourArea(hull)
+            if area > 100:
+                #cv2.drawContours(roi, [cnt], -1, (0, 255, 0), 2)
+                x, y, w, h = cv2.boundingRect(hull)
+                detections.append([x, y, w, h])
 
+        boxes_ids = tracker.update(detections)
+        for box_id in boxes_ids:
+            print("id",box_id)
+            x, y, w, h, id = box_id
+            cv2.putText(img, str(id), (x, y - 15), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 0), 2)
+            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 3)
 
-           # cv2.line(img, (930, 0), (930, 560), (0, 0, 0), 5)                  
-            for point in pts :  
-                #cv2.line(imgOriginal, pts[i-1], pts[i],(0,255,0),3)   
-                cv2.circle(img, (point[0], point[1]), 5, (255,255,255),-1)
-       
+            if(x > count_border_down and x < count_border_up and (id not in passed_ids) ):
+                passed_ids.append(id)
+                count += 1
+            cv2.putText(img, str(count), (30,30), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 0), 2)
+                
 
-        last_hulls = hulls
 
     new_frame_time = time.time()
     fps = int( 1/(new_frame_time-prev_frame_time) )
