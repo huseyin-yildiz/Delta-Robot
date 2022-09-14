@@ -13,7 +13,6 @@ from tracker import *
 
 
 
-
 tracker = EuclideanDistTracker()
 passed_ids = deque(maxlen=200)
 count_area_size = 10
@@ -122,8 +121,8 @@ def get_img():
 #         if cv2.waitKey(1) & 0xFF == ord("q"): 
 #             break
 #         
-        
-
+            
+    
 def renk_say(serial,color):
   
     global count 
@@ -173,6 +172,11 @@ def renk_say(serial,color):
     command = 't6.txt="'+str(count)+'"' 
     write_cmd(serial,command)
 
+
+
+    
+ #######################################################   
+    
     
 
 # Kinematik denklemlerdeki sabit değerler
@@ -187,30 +191,44 @@ d4 = Ua * math.sin(30)
 d3 = Ub * math.sin(30)  
 ###
 
+stop_line_x = 10
 
 def renk_ayirma(serial,renk):
     motor_calistir()
     
-    
+        
     img,gama_corrected_hsv = get_img()
     
+    hulls = None
+    draw_color = None
+    
+    
+    if(color == COLOR_YELLOW):
+        hulls = color_filter(gama_corrected_hsv, yellow_down, yellow_up, yellow_erode, yellow_dilate)
+        draw_color = BGR_YELLOW
         
-    red_hulls = color_filter(gama_corrected_hsv, red_down, red_up, red_erode, red_dilate)
-    yellow_hulls = color_filter(gama_corrected_hsv, yellow_down, yellow_up, yellow_erode, yellow_dilate)
-    blue_hulls = color_filter(gama_corrected_hsv, blue_down, blue_up, blue_erode, blue_dilate)
+    elif(color == COLOR_BLUE):
+        hulls = color_filter(gama_corrected_hsv, blue_down, blue_up, blue_erode, blue_dilate)
+        draw_color = BGR_BLUE
+        
+    elif(color == COLOR_RED):    
+        hulls = color_filter(gama_corrected_hsv, red_down, red_up, red_erode, red_dilate)
+        draw_color = BGR_RED
+    else:
+       return 
+        
+        
+    centers draw_contour(img,hulls, draw_color )    
     
-    draw_contour(img, red_hulls, (0,0,255) )
-    draw_contour(img, yellow_hulls, (0,255,255) )
-    draw_contour(img, blue_hulls, (255,0,0) )
-      
+    detections = []
     
-
-    #%
-    # belli nir noktada konveyör bandı durdurulması
-    if (coord_x_cm):
-        if coord_x_cm < 4:     
-            i = 0
+    for hull,center in hulls,centers:
+        # Calculate area and remove small elements
+        # area = cv2.contourArea(hull)
+        if(center <= stop_line_x):
+            i=0
             motor_durdur()
+            
             # bir işlem 2 adımdan oluşucağı ve adımlar arasındaki veriler deişceği için döngü kuruldu.
             while (i < 2):
                 xp = [0,0] 
