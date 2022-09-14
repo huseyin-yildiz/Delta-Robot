@@ -4,15 +4,17 @@ Created on Fri Sep  2 08:28:42 2022
 
 @author: DHAMLE2
 """
+
+#%%
 import cv2
 import numpy as np
 from collections import deque
 import math
 import time
 
-#%%
 
-buffer_size = 16
+
+buffer_size = 1000
 pts = deque(maxlen = buffer_size)
 cap = cv2.VideoCapture(0)
 cap.set(3,960)
@@ -190,7 +192,7 @@ def draw_contour(img,hulls, contour_color ):
         cv2.circle(img, (center[0], center[1]), 5, contour_color,-1)
         cv2.putText(img ,str(center[0]/2) +"mm "+ str(center[1]/2) +"mm" 
                         , (center[0], center[1]+20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.6, (0,0,0), 1)
-        
+        return center
 
 def gammaCorrection(img, gamma):
     invGamma = 1 / gamma
@@ -276,43 +278,43 @@ blue_dilate = 2
 
 
 
-corner_points = get_bant_corners(cap)
+corner_points = [(0, 25), (804, 189), (0, 201), (804, 12)] # get_bant_corners(cap)
 
 prev_frame_time = 0
 new_frame_time = 0
 
 
-while(True):
-    success, img = cap.read()
+# while(True):
+#     success, img = cap.read()
     
-    if success: 
+#     if success: 
         
-        img = img[135:345,75:880] 
-        img = perspective_transform(img,corner_points)
+#         img = img[135:345,75:880] 
+#         img = perspective_transform(img,corner_points)
         
        
-        blurred = cv2.GaussianBlur(img, (11,11), 0)      
-        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+#         blurred = cv2.GaussianBlur(img, (11,11), 0)      
+#         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         
-        gama_corrected_hsv = gama_hsv(hsv)
+#         gama_corrected_hsv = gama_hsv(hsv)
         
         
-        red_hulls = color_filter(gama_corrected_hsv, red_down, red_up, red_erode, red_dilate)
-        yellow_hulls = color_filter(gama_corrected_hsv, yellow_down, yellow_up, yellow_erode, yellow_dilate)
-        blue_hulls = color_filter(gama_corrected_hsv, blue_down, blue_up, blue_erode, blue_dilate)
+#         red_hulls = color_filter(gama_corrected_hsv, red_down, red_up, red_erode, red_dilate)
+#         yellow_hulls = color_filter(gama_corrected_hsv, yellow_down, yellow_up, yellow_erode, yellow_dilate)
+#         blue_hulls = color_filter(gama_corrected_hsv, blue_down, blue_up, blue_erode, blue_dilate)
         
-        draw_contour(img, red_hulls, (0,0,255) )
-        draw_contour(img, yellow_hulls, (0,255,255) )
-        draw_contour(img, blue_hulls, (255,0,0) )
+#         draw_contour(img, red_hulls, (0,0,255) )
+#         draw_contour(img, yellow_hulls, (0,255,255) )
+#         draw_contour(img, blue_hulls, (255,0,0) )
     
-    new_frame_time = time.time()
-    fps = int( 1/(new_frame_time-prev_frame_time) )
-    prev_frame_time = new_frame_time
-    cv2.putText(img, str(fps) + "FPS", (7, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (100, 255, 0), 2, cv2.LINE_AA)
+#     new_frame_time = time.time()
+#     fps = int( 1/(new_frame_time-prev_frame_time) )
+#     prev_frame_time = new_frame_time
+#     cv2.putText(img, str(fps) + "FPS", (7, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (100, 255, 0), 2, cv2.LINE_AA)
         
-    cv2.imshow("Orijinal Tespit",img)
+#     cv2.imshow("Orijinal Tespit",img)
     
     
-    if cv2.waitKey(1) & 0xFF == ord("q"): 
-        break 
+#     if cv2.waitKey(1) & 0xFF == ord("q"): 
+#         break 
     
