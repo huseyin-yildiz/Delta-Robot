@@ -9,6 +9,20 @@ from motor import motor_calistir
 import math
 from threading import Thread
 from konum_takip import *
+from tracker import *
+
+
+
+
+tracker = EuclideanDistTracker()
+passed_ids = deque(maxlen=200)
+count_area_size = 10
+count_border_down = real_length / 5 - count_area_size / 2
+count_border_up   = count_border_down + count_area_size
+
+count = 0
+
+real_middle = (int(real_length / 2), int( real_width / 2 ) ) 
 
 
 ### 3 Step motorun pin ayarları
@@ -54,8 +68,8 @@ cap.set(4,544)
 
 corner_points = [(0, 24), (804, 192), (0, 199), (804, 13)]
 
-global count
-count = 0
+# global count
+# count = 0
 
 
 
@@ -134,26 +148,31 @@ def renk_say(serial,color):
        return 
         
         
-    centers = draw_contour(img, hulls, draw_color)
-    pts.appendleft(centers)           
-    for i in range(1, len(pts)):    
-        if pts[i-1] is None or pts[i] is None: continue
-        cv2.line(img, pts[i-1], pts[i],(0,255,0),3) #  
-    
-    if( len(centers) ):
-        x = centers[0][0]
-        print("x",x)
-        
-        if x > 100 and x < 106  :
-            count = count + 1
-            command = 't6.txt="' + str(count) + '"' 
-            write_cmd(serial,command)
-            time.sleep(2)
+    detections = []
+    for hull in hulls:
+        # Calculate area and remove small elements
+        area = cv2.contourArea(hull)
+        if area > 100:
+            #cv2.drawContours(roi, [cnt], -1, (0, 255, 0), 2)
+            x, y, w, h = cv2.boundingRect(hull)
+            detections.append([x, y, w, h])
+
+    boxes_ids = tracker.update(detections)
+    for box_id in boxes_ids:
+        print("id",box_id)
+        x, y, w, h, id = box_id
+        cv2.putText(img, str(id), (x, y - 15), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 0), 2)
+        cv2.rectangle(img, (x, y), (x + w, y + h), draw_color, 3)
+
+        if(x > count_border_down and x < count_border_up and (id not in passed_ids) ):
+            passed_ids.append(id)
+            count += 1
+            
+    cv2.putText(img, str(count), (30,30), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 0), 2)
     cv2.imshow("tst",img)
-    
-    
-    #time.sleep(1)
-    
+    command = 't6.txt="'+str(count)+'"' 
+    write_cmd(serial,command)
+
     
 
 # Kinematik denklemlerdeki sabit değerler
@@ -285,20 +304,28 @@ def renk_takip(serial,color):
     elif(color == COLOR_BLUE):
         hulls = color_filter(gama_corrected_hsv, blue_down, blue_up, blue_erode, blue_dilate)
         centers = draw_contour(img, hulls, (255,0,0) )
-
+    
+    cx=0
+    cy=0
     
     if( len(centers) ):
         x = centers[0][0]
         y = centers[0][1]
     
-        print("x:",x,"y:",y)
+        cx,cy = pixelToCoord(x,y)
+        print("x:",cx,"y:",cy)
     
-    
-    command = 't6.txt="'+'x:'+str(x)+'y:'+str(y)+'"' 
+    command = 't6.txt="'+'x:'+str(cx)+'y:'+str(cy)+'"' 
     try:
         write_cmd(serial,command)
     except:
         print("hata")
+    cv2.circle(img, real_middle, 5, (255,0,255),-1)
     cv2.imshow("tst",img)
     #time.sleep(0.05)
          
+         
+def pixelToCoord(x,y):
+    cx = x - float(real_length) / 2.0
+    cy =  float(real_width) / 2.0 - y
+    return cx,cy

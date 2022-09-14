@@ -69,6 +69,7 @@ while(True):
             print("back")
             func = None
             color = None
+            goruntu_isleme.count = 0 
             motor_durdur()
         
         if(func):
